@@ -1,9 +1,14 @@
-<?= $helper->getHeadPrintCode('New '.$entity_class_name) ?>
+{% extends 'base.index.html.twig' %}
 
-{% block body %}
-    <h1>Create new <?= $entity_class_name ?></h1>
+{% block title %}
+    {{ 'app.titles.new'|trans({'name': '<?= $templates_path ?>.designation.singular'|trans}) }}
+{% endblock %}
+{% block headline %}
+    {{ 'app.headlines.new'|trans({'name': '<?= $templates_path ?>.designation.singular'|trans}) }}
+{% endblock %}
 
+{% block index_body %}
     {{ include('<?= $templates_path ?>/_form.html.twig') }}
 
-    <a href="{{ path('<?= $route_name ?>_index') }}">back to list</a>
+    <a href="{{ path('<?= $route_name ?>_index') }}">{{ 'app.back_to_list'|trans }}</a>
 {% endblock %}

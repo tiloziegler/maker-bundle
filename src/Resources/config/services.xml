@@ -66,6 +66,12 @@
 
             <service id="maker.renderer.form_type_renderer" class="Symfony\Bundle\MakerBundle\Renderer\FormTypeRenderer">
                 <argument type="service" id="maker.generator" />
+                <argument type="service" id="maker.doctrine_helper" />
+            </service>
+
+            <service id="maker.renderer.menu_renderer" class="Symfony\Bundle\MakerBundle\Renderer\MenuRenderer">
+                <argument type="service" id="maker.generator" />
+                <argument type="service" id="maker.doctrine_helper" />
             </service>
 
             <service id="maker.php_compat_util" class="Symfony\Bundle\MakerBundle\Util\PhpCompatUtil">

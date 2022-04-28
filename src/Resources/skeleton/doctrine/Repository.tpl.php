@@ -3,6 +3,7 @@
 namespace <?= $namespace; ?>;
 
 use <?= $entity_full_class_name; ?>;
+use App\Logic\ClassResolver;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use <?= $doctrine_registry_class; ?>;
 <?= $with_password_upgrade ? "use Symfony\Component\Security\Core\Exception\UnsupportedUserException;\n" : '' ?>
@@ -18,9 +19,13 @@ use <?= $doctrine_registry_class; ?>;
  */
 class <?= $class_name; ?> extends ServiceEntityRepository<?= $with_password_upgrade ? " implements PasswordUpgraderInterface\n" : "\n" ?>
 {
-    public function __construct(ManagerRegistry $registry)
+    public function __construct(ManagerRegistry $registry, ClassResolver $classResolver)
     {
-        parent::__construct($registry, <?= $entity_class_name; ?>::class);
+
+        parent::__construct(
+            $registry,
+            $classResolver->getObjectNameByInterfaceName( <?= $entity_class_name; ?>::class )
+        );
     }
 <?php if ($include_example_comments): // When adding a new method without existing default comments, the blank line is automatically added.?>
 

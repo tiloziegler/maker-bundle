@@ -2,10 +2,11 @@
 
 namespace <?= $namespace ?>;
 
-<?php if ($bounded_full_class_name): ?>
-use <?= $bounded_full_class_name ?>;
+
+<?php if ($interface_full_class_name): ?>
+use <?= $interface_full_class_name ?>;
 <?php endif ?>
-use Symfony\Component\Form\AbstractType;
+
 <?php foreach ($field_type_use_statements as $className): ?>
 use <?= $className ?>;
 <?php endforeach; ?>
@@ -37,8 +38,8 @@ class <?= $class_name ?> extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-<?php if ($bounded_full_class_name): ?>
-            'data_class' => <?= $bounded_class_name ?>::class,
+<?php if ($interface_full_class_name): ?>
+            'data_class' => <?= $interface_class_name ?>::class,
 <?php else: ?>
             // Configure your form options here
 <?php endif ?>

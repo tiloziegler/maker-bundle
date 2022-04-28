@@ -6,6 +6,7 @@ namespace <?= $namespace ?>;
 <?php elseif ($api_resource): ?>use ApiPlatform\Core\Annotation\ApiResource;
 <?php endif ?>
 use <?= $repository_full_class_name ?>;
+use <?= $interface_full_class_name ?>;
 use Doctrine\ORM\Mapping as ORM;
 <?php if ($broadcast): ?>use Symfony\UX\Turbo\Attribute\Broadcast;
 <?php endif ?>
@@ -32,7 +33,7 @@ use Doctrine\ORM\Mapping as ORM;
 <?php if ($broadcast && $use_attributes): ?>
 #[Broadcast]
 <?php endif ?>
-class <?= $class_name."\n" ?>
+class <?= $class_name ?><?php if ($interface): ?> implements <?= $interface_class_name ?> <?php endif ?><?="\n" ?>
 {
     <?php if (!$doctrine_use_attributes): ?>/**
      * @ORM\Id

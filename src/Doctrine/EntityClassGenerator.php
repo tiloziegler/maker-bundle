@@ -23,84 +23,128 @@ use Symfony\Component\Security\Core\User\UserInterface;
  */
 final class EntityClassGenerator
 {
+
     private $generator;
+
+
     private $doctrineHelper;
+
+
     private $managerRegistryClassName = LegacyManagerRegistry::class;
 
-    public function __construct(Generator $generator, DoctrineHelper $doctrineHelper)
+
+    public function __construct( Generator $generator, DoctrineHelper $doctrineHelper )
     {
-        $this->generator = $generator;
+        $this->generator      = $generator;
         $this->doctrineHelper = $doctrineHelper;
     }
 
-    public function generateEntityClass(ClassNameDetails $entityClassDetails, bool $apiResource, bool $withPasswordUpgrade = false, bool $generateRepositoryClass = true, bool $broadcast = false): string
+
+    public function generateEntityClass( ClassNameDetails $entityClassDetails, bool $apiResource, bool $withPasswordUpgrade = false, bool $generateRepositoryClass = true, bool $broadcast = false ): string
     {
         $repoClassDetails = $this->generator->createClassNameDetails(
             $entityClassDetails->getRelativeName(),
             'Repository\\',
             'Repository'
         );
+        $interfaceClassDetails = $this->generator->createClassNameDetails(
+            $entityClassDetails->getRelativeName(),
+            'lib\\Interfaces\\',
+            'Interface'
+        );
 
-        $tableName = $this->doctrineHelper->getPotentialTableName($entityClassDetails->getFullName());
+        $generateInterface = true;
+
+        $tableName = $this->doctrineHelper->getPotentialTableName( $entityClassDetails->getFullName() );
 
         $entityPath = $this->generator->generateClass(
             $entityClassDetails->getFullName(),
             'doctrine/Entity.tpl.php',
             [
                 'repository_full_class_name' => $repoClassDetails->getFullName(),
-                'repository_class_name' => $repoClassDetails->getShortName(),
-                'api_resource' => $apiResource,
-                'broadcast' => $broadcast,
-                'should_escape_table_name' => $this->doctrineHelper->isKeyword($tableName),
-                'table_name' => $tableName,
-                'doctrine_use_attributes' => $this->doctrineHelper->isDoctrineSupportingAttributes() && $this->doctrineHelper->doesClassUsesAttributes($entityClassDetails->getFullName()),
+                'repository_class_name'      => $repoClassDetails->getShortName(),
+                'interface_full_class_name'  => $interfaceClassDetails->getFullName(),
+                'interface_class_name'       => $interfaceClassDetails->getShortName(),
+                'api_resource'               => $apiResource,
+                'broadcast'                  => $broadcast,
+                'interface'                  => $generateInterface,
+                'should_escape_table_name'   => $this->doctrineHelper->isKeyword( $tableName ),
+                'table_name'                 => $tableName,
+                'doctrine_use_attributes'    => $this->doctrineHelper->isDoctrineSupportingAttributes() && $this->doctrineHelper->doesClassUsesAttributes( $entityClassDetails->getFullName() ),
             ]
         );
 
-        if ($generateRepositoryClass) {
-            $this->generateRepositoryClass(
-                $repoClassDetails->getFullName(),
-                $entityClassDetails->getFullName(),
+        if( $generateInterface ) {
+            $this->generateInterfaceClass(
+                $interfaceClassDetails->getFullName(),
+                $interfaceClassDetails->getFullName(),
                 $withPasswordUpgrade,
                 true
+            );
+        }
+
+        if( $generateRepositoryClass ) {
+            $this->generateRepositoryClass(
+                $repoClassDetails->getFullName(),
+                $interfaceClassDetails->getFullName(),
+                $withPasswordUpgrade,
+                false
             );
         }
 
         return $entityPath;
     }
 
-    public function generateRepositoryClass(string $repositoryClass, string $entityClass, bool $withPasswordUpgrade, bool $includeExampleComments = true)
+
+    public function generateInterfaceClass( string $repositoryClass, string $entityClass, bool $withPasswordUpgrade)
     {
-        $shortEntityClass = Str::getShortClassName($entityClass);
-        $entityAlias = strtolower($shortEntityClass[0]);
+        $shortEntityClass = Str::getShortClassName( $entityClass );
+        $entityAlias      = strtolower( $shortEntityClass[0] );
+
+        $this->generator->generateClass(
+            $repositoryClass,
+            'doctrine/Interface.tpl.php',
+            [
+                'entity_class_name'               => $shortEntityClass,
+                'entity_alias'                    => $entityAlias,
+            ]
+        );
+    }
+
+
+    public function generateRepositoryClass( string $repositoryClass, string $entityClass, bool $withPasswordUpgrade, bool $includeExampleComments = true )
+    {
+        $shortEntityClass = Str::getShortClassName( $entityClass );
+        $entityAlias      = strtolower( $shortEntityClass[0] );
 
         $passwordUserInterfaceName = UserInterface::class;
 
-        if (interface_exists(PasswordAuthenticatedUserInterface::class)) {
+        if( interface_exists( PasswordAuthenticatedUserInterface::class ) ) {
             $passwordUserInterfaceName = PasswordAuthenticatedUserInterface::class;
         }
 
-        $interfaceClassNameDetails = new ClassNameDetails($passwordUserInterfaceName, 'Symfony\Component\Security\Core\User');
+        $interfaceClassNameDetails = new ClassNameDetails( $passwordUserInterfaceName, 'Symfony\Component\Security\Core\User' );
 
         $this->generator->generateClass(
             $repositoryClass,
             'doctrine/Repository.tpl.php',
             [
-                'entity_full_class_name' => $entityClass,
-                'entity_class_name' => $shortEntityClass,
-                'entity_alias' => $entityAlias,
-                'with_password_upgrade' => $withPasswordUpgrade,
+                'entity_full_class_name'          => $entityClass,
+                'entity_class_name'               => $shortEntityClass,
+                'entity_alias'                    => $entityAlias,
+                'with_password_upgrade'           => $withPasswordUpgrade,
                 'password_upgrade_user_interface' => $interfaceClassNameDetails,
-                'doctrine_registry_class' => $this->managerRegistryClassName,
-                'include_example_comments' => $includeExampleComments,
+                'doctrine_registry_class'         => $this->managerRegistryClassName,
+                'include_example_comments'        => $includeExampleComments,
             ]
         );
     }
 
+
     /**
      * Called by a compiler pass to inject the non-legacy value if available.
      */
-    public function setMangerRegistryClassName(string $managerRegistryClassName)
+    public function setMangerRegistryClassName( string $managerRegistryClassName )
     {
         $this->managerRegistryClassName = $managerRegistryClassName;
     }

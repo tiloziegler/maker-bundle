@@ -22,6 +22,7 @@ use Symfony\Bundle\MakerBundle\Doctrine\DoctrineHelper;
 use Symfony\Bundle\MakerBundle\Generator;
 use Symfony\Bundle\MakerBundle\InputConfiguration;
 use Symfony\Bundle\MakerBundle\Renderer\FormTypeRenderer;
+use Symfony\Bundle\MakerBundle\Renderer\MenuRenderer;
 use Symfony\Bundle\MakerBundle\Str;
 use Symfony\Bundle\MakerBundle\Validator;
 use Symfony\Bundle\TwigBundle\TwigBundle;
@@ -43,14 +44,17 @@ final class MakeCrud extends AbstractMaker
 
     private $formTypeRenderer;
 
+    private $menuRenderer;
+
     private $inflector;
 
     private $controllerClassName;
 
-    public function __construct(DoctrineHelper $doctrineHelper, FormTypeRenderer $formTypeRenderer)
+    public function __construct(DoctrineHelper $doctrineHelper, FormTypeRenderer $formTypeRenderer, MenuRenderer $menuRenderer)
     {
         $this->doctrineHelper = $doctrineHelper;
         $this->formTypeRenderer = $formTypeRenderer;
+        $this->menuRenderer = $menuRenderer;
 
         if (class_exists(InflectorFactory::class)) {
             $this->inflector = InflectorFactory::create()->build();
@@ -127,6 +131,22 @@ final class MakeCrud extends AbstractMaker
                 'repository_var' => lcfirst($this->singularize($repositoryClassDetails->getShortName())),
             ];
         }
+        
+        $interaceVars = [];
+
+        if (null !== $entityDoctrineDetails->getInterfaceClass()) {
+            $interaceClassDetails = $generator->createClassNameDetails(
+                '\\'.$entityDoctrineDetails->getInterfaceClass(),
+                'lib\\Interfaces\\',
+                'Interface'
+            );
+
+            $interaceVars = [
+                'interface_full_class_name' => $interaceClassDetails->getFullName(),
+                'interface_class_name' => $interaceClassDetails->getShortName(),
+                'interface_var' => lcfirst($this->singularize($interaceClassDetails->getShortName())),
+            ];
+        }
 
         $controllerClassDetails = $generator->createClassNameDetails(
             $this->controllerClassName,
@@ -171,13 +191,58 @@ final class MakeCrud extends AbstractMaker
                     'entity_identifier' => $entityDoctrineDetails->getIdentifier(),
                     'use_render_form' => method_exists(AbstractController::class, 'renderForm'),
                 ],
-                $repositoryVars
+                $repositoryVars,
+                $interaceVars
             )
         );
 
         $this->formTypeRenderer->render(
             $formClassDetails,
             $entityDoctrineDetails->getFormFields(),
+            $entityClassDetails
+        );
+
+        /**
+         * Render Event
+         */
+        $menuEventClassDetails = $generator->createClassNameDetails(
+            $entityClassDetails->getRelativeNameWithoutSuffix(),
+            'Event\\',
+            'MenuEvent'
+        );
+        
+        $this->menuRenderer->renderEvent(
+            $menuEventClassDetails,
+            $entityClassDetails
+        );
+
+        /**
+         * Render Event
+         */
+        $menuBuilderClassDetails = $generator->createClassNameDetails(
+            $entityClassDetails->getRelativeNameWithoutSuffix(),
+            'Menu\\',
+            'Builder'
+        );
+
+        $this->menuRenderer->renderBuilder(
+            $menuBuilderClassDetails,
+            $entityClassDetails,
+            $menuEventClassDetails
+        );
+
+
+        /**
+         * Render EventListener
+         */
+        $menuEventListenerClassDetails = $generator->createClassNameDetails(
+            $entityClassDetails->getRelativeNameWithoutSuffix(),
+            'EventListener\\',
+            'MenuListener'
+        );
+
+        $this->menuRenderer->renderEventListener(
+            $menuEventListenerClassDetails,
             $entityClassDetails
         );
 
@@ -209,6 +274,14 @@ final class MakeCrud extends AbstractMaker
                 'templates_path' => $templatesPath,
             ],
             'show' => [
+                'entity_class_name' => $entityClassDetails->getShortName(),
+                'entity_twig_var_singular' => $entityTwigVarSingular,
+                'entity_identifier' => $entityDoctrineDetails->getIdentifier(),
+                'entity_fields' => $entityDoctrineDetails->getDisplayFields(),
+                'route_name' => $routeName,
+                'templates_path' => $templatesPath,
+            ],
+            'base' => [
                 'entity_class_name' => $entityClassDetails->getShortName(),
                 'entity_twig_var_singular' => $entityTwigVarSingular,
                 'entity_identifier' => $entityDoctrineDetails->getIdentifier(),

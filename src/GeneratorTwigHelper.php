@@ -68,9 +68,8 @@ final class GeneratorTwigHelper
     {
         if ($this->fileManager->fileExists($this->fileManager->getPathForTemplate('base.html.twig'))) {
             return <<<TWIG
-{% extends 'base.html.twig' %}
-
-{% block title %}$title{% endblock %}
+{% extends 'themes/hyper/saas/base.entity.html.twig' %}
+{% import "themes/hyper/saas/macros/dropdown.html.twig" as dropdown %}
 
 TWIG;
         }
